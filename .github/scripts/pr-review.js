@@ -40,7 +40,18 @@ const TESTS = /^(server\/test|client\/test|e2e)\//;
 const ISSUE_LINK = /\b(close[sd]?|fix(e[sd])?|resolve[sd]?)\b[\s:]*(#\d+|https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+)/i;
 const LARGE = 500;
 
-const stripComments = (s) => String(s || '').replace(/<!--[\s\S]*?-->/g, '');
+// Removes HTML comments the way GitHub hides them when rendering: repeatedly, until none is
+// left, so a crafted "<!<!-- -->-- Closes #1 -->" cannot reassemble into hidden text that still
+// counts. An unclosed "<!--" hides everything after it. A plain scan, no regex (CodeQL
+// js/incomplete-multi-character-sanitization).
+function stripComments(s) {
+  let out = String(s || '');
+  for (let i = out.indexOf('<!--'); i !== -1; i = out.indexOf('<!--')) {
+    const end = out.indexOf('-->', i + 4);
+    out = end === -1 ? out.slice(0, i) : out.slice(0, i) + out.slice(end + 3);
+  }
+  return out;
+}
 
 function section(body, heading) {
   const text = stripComments(body);
@@ -158,4 +169,4 @@ function render({ errors, warnings, notes, pr, files, size }) {
   return blocks.filter(Boolean).join('\n\n');
 }
 
-module.exports = { analyse, addedDependencies, section, MARKER };
+module.exports = { analyse, addedDependencies, section, stripComments, MARKER };

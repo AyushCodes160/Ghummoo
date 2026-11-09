@@ -1,4 +1,4 @@
-// Tests for the automated PR check (.github/scripts/pr-review.js). Run: node --test .github/scripts/
+// Tests for the automated PR check (.github/scripts/pr-review.js). Run: node --test .github/scripts/*.test.js
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { analyse, addedDependencies, section, MARKER } = require('./pr-review');
@@ -127,4 +127,15 @@ test('the issue-link pattern stays linear on hostile descriptions', () => {
   assert.ok(Date.now() - t < 200, `took ${Date.now() - t} ms`);
   assert.ok(r.errors.some((e) => /No linked issue/.test(e)));
   assert.deepEqual(analyse({ pr: pr({ body: 'Fixes:#7' }), files: [f('README.md')], repoFullName: REPO }).errors, []);
+});
+
+test('HTML comments are removed completely, so hidden text cannot count as an issue link', () => {
+  const { stripComments } = require('./pr-review');
+  assert.equal(stripComments('a<!-- x -->b'), 'ab');
+  assert.equal(stripComments('<!<!-- -->-- Closes #1 -->'), '', 'reassembled comment is removed too');
+  assert.equal(stripComments('keep <!-- unclosed Closes #1'), 'keep ');
+  assert.equal(stripComments('<!--->x-->y'), 'y');
+  assert.equal(stripComments(null), '');
+  const sneaky = analyse({ pr: pr({ body: '## What this changes\n\n<!<!-- -->-- Closes #1 -->\n\nStuff' }), files: [f('README.md')], repoFullName: REPO });
+  assert.ok(sneaky.errors.some((e) => /No linked issue/.test(e)), 'a link hidden inside a comment does not count');
 });
