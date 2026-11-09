@@ -92,6 +92,17 @@ The **DCO sign-off** check (`.github/workflows/dco.yml`) runs on every pull requ
 - [ ] UI: keyboard, mobile width, reduced motion and colour tokens checked.
 - [ ] CI is green.
 
+## The automated PR check
+
+When you open a PR, a bot comment summarises it within a minute and updates on every push. It checks:
+- the PR targets `staging` and links an issue (`Closes #12`);
+- the template is filled in;
+- tests changed when application code changed;
+- which sensitive files changed (workflows, dependencies, auth, the user model);
+- whether the PR is large.
+
+Problems in the first point fail the **PR checklist** check; the rest are advice for you and the reviewer. The check is advisory, not a merge requirement: it tells you what to fix, and maintainers decide. The bot reads only the PR description and file list and never runs your code.
+
 ## Who reviews
 
 Both project owners, `@shekhar-narayan-mishra` and `@vedansha07`, are code owners and are requested automatically on every PR. Either can approve and merge. How owner-level decisions are made is described in [GOVERNANCE.md](GOVERNANCE.md).
