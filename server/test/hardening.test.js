@@ -249,3 +249,26 @@ test('The API accepts JSON only: form-encoded bodies are not parsed', async () =
   });
   assert.equal(res.status, 400, 'a cross-site HTML form cannot sign anyone in');
 });
+
+test('Database errors are hidden from public responses in production, shown in development', async () => {
+  const c = client();
+  const saved = { env: process.env.NODE_ENV, db: app.locals.db };
+  app.locals.db = { ready: false, state: 'error', error: 'Could not find the MongoDB host (mongodb+srv://***@secret-host.example.net/x)' };
+  try {
+    for (const env of ['production', 'development']) {
+      process.env.NODE_ENV = env;
+      const health = await c.get('/api/health');
+      const gated = await c.get('/api/trips');
+      assert.equal(health.status, 503);
+      assert.equal(health.body.success, false);
+      assert.equal(health.data.status, 'error', 'host health checks keep reading the same state');
+      assert.equal(gated.status, 503);
+      assert.equal(gated.body.code, 'DB_UNAVAILABLE');
+      const leaks = health.text.includes('secret-host') || gated.text.includes('secret-host');
+      assert.equal(leaks, env !== 'production', `${env}: detailed reason ${env === 'production' ? 'hidden' : 'shown'}`);
+    }
+  } finally {
+    if (saved.env === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = saved.env;
+    if (saved.db === undefined) delete app.locals.db; else app.locals.db = saved.db;
+  }
+});

@@ -50,8 +50,10 @@ The web app is waiting for an API that never answers. Open `<api-url>/api/health
 - **It never responds:** the API process is crashing and Render keeps restarting it. Check the
   service **Logs**. The usual cause is a `MONGODB_URI` pointing at a cluster that no longer exists
   (the old Ghummoo cluster is gone).
-- **It returns 503 with a `database` message:** the server is up but can't reach MongoDB. The
-  message says why (wrong host, wrong password, or Atlas Network Access blocking Render).
+- **It returns 503 with a `database` message:** the server is up but can't reach MongoDB. In
+  production (`NODE_ENV=production`) the response only says `unavailable`; the reason (wrong host,
+  wrong password, or Atlas Network Access blocking Render) is in the service **Logs**, repeated on
+  every retry. Outside production the response includes the reason.
 
 If you keep the **old split setup** (static site `ghummoo-client` + API `ghummoo-api`):
 - On the API, set `CLIENT_URL=https://ghummoo-client.onrender.com` (CORS) and a valid `MONGODB_URI`.
